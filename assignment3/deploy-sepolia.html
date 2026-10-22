@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assignment 3 — Sepolia deployment</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 760px; margin: 3rem auto; padding: 0 1.25rem; color: #17212b; }
+    h1 { line-height: 1.2; } button { padding: .7rem 1rem; margin: .35rem .4rem .35rem 0; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: not-allowed; } pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f4f7; padding: 1rem; border-radius: .4rem; }
+    .note { border-left: 4px solid #4b79ac; padding-left: 1rem; } a { color: #125ca2; }
+  </style>
+</head>
+<body>
+  <h1>Assignment 3: HelloWorld on Sepolia</h1>
+  <p class="note">Serve this directory on localhost, then open this page in the browser that has your wallet extension. Only use the Sepolia test network. The wallet will ask you to approve each transaction; this page never reads a private key.</p>
+  <p>Expected wallet: <code>0xb9E93cCc03957ed59FD5b16374F27c85469447c8</code></p>
+  <button id="connect">1. Connect wallet</button>
+  <button id="deploy" disabled>2. Deploy HelloWorld</button>
+  <button id="call" disabled>3. Send hello() transaction</button>
+  <button id="read" disabled>4. Read hello() output</button>
+  <pre id="status" aria-live="polite">Waiting for wallet connection.</pre>
+  <p>Check transaction hashes and contract address on <a href="https://sepolia.etherscan.io/" target="_blank" rel="noopener">Sepolia Etherscan</a>.</p>
+  <script>
+    'use strict';
+    const expected = '0xb9E93cCc03957ed59FD5b16374F27c85469447c8'.toLowerCase();
+    const chainId = '0xaa36a7'; // 11155111, Ethereum Sepolia
+    const selector = '0x19ff1d21'; // hello()
+    const provider = window.ethereum;
+    const status = document.querySelector('#status');
+    const connectButton = document.querySelector('#connect');
+    const deployButton = document.querySelector('#deploy');
+    const callButton = document.querySelector('#call');
+    const readButton = document.querySelector('#read');
+    let account = null;
+    let contract = null;
+    const log = (message) => { status.textContent += '\n' + message; };
+    const request = (method, params = []) => provider.request({ method, params });
+    async function requireWallet() {
+      if (!provider) throw new Error('No injected wallet found. Open this page in your wallet-enabled browser.');
+      const currentChain = await request('eth_chainId');
+      if (currentChain.toLowerCase() !== chainId) throw new Error('Select Ethereum Sepolia (chain ID 11155111) in your wallet, then reconnect.');
+      const accounts = await request('eth_requestAccounts');
+      if (!accounts.length || accounts[0].toLowerCase() !== expected) throw new Error('Selected account differs from the assignment wallet. Select the expected address and reconnect.');
+      account = accounts[0];
+      const balance = BigInt(await request('eth_getBalance', [account, 'latest']));
+      if (balance === 0n) throw new Error('This address has 0 Sepolia ETH. Claim test ETH before deploying.');
+      return Number(balance) / 1e18;
+    }
+    async function waitForReceipt(hash) {
+      for (let attempt = 0; attempt < 90; attempt++) {
+        const receipt = await request('eth_getTransactionReceipt', [hash]);
+        if (receipt) {
+          if (receipt.status !== '0x1') throw new Error('Transaction failed: ' + hash);
+          return receipt;
+        }
+        await new Promise(resolve => setTimeout(resolve, 4000));
+      }
+      throw new Error('Transaction is still pending. Check the hash on Sepolia Etherscan: ' + hash);
+    }
+    async function action(button, fn) {
+      button.disabled = true;
+      try { await fn(); } catch (error) { log('ERROR: ' + (error?.message ?? String(error))); button.disabled = false; }
+    }
+    connectButton.addEventListener('click', () => action(connectButton, async () => {
+      status.textContent = 'Checking wallet and network…';
+      const eth = await requireWallet();
+      log('Connected: ' + account);
+      log('Sepolia balance: ' + eth + ' ETH');
+      deployButton.disabled = false;
+    }));
+    deployButton.addEventListener('click', () => action(deployButton, async () => {
+      await requireWallet();
+      const bytecode = (await (await fetch('./HelloWorld.creation.bin')).text()).trim();
+      if (!/^[0-9a-f]+$/i.test(bytecode)) throw new Error('Compiled creation bytecode is missing or invalid.');
+      const hash = await request('eth_sendTransaction', [{ from: account, data: '0x' + bytecode, value: '0x0' }]);
+      log('Deployment transaction: ' + hash);
+      log('https://sepolia.etherscan.io/tx/' + hash);
+      const receipt = await waitForReceipt(hash);
+      contract = receipt.contractAddress;
+      if (!contract) throw new Error('Receipt has no contract address.');
+      log('Contract: ' + contract);
+      log('https://sepolia.etherscan.io/address/' + contract);
+      callButton.disabled = false;
+      readButton.disabled = false;
+    }));
+    callButton.addEventListener('click', () => action(callButton, async () => {
+      await requireWallet();
+      const hash = await request('eth_sendTransaction', [{ from: account, to: contract, data: selector, value: '0x0' }]);
+      log('hello() transaction: ' + hash);
+      log('https://sepolia.etherscan.io/tx/' + hash);
+      await waitForReceipt(hash);
+      log('hello() transaction confirmed.');
+      readButton.disabled = false;
+    }));
+    readButton.addEventListener('click', () => action(readButton, async () => {
+      const hex = await request('eth_call', [{ to: contract, data: selector }, 'latest']);
+      const clean = hex.slice(2);
+      const offset = Number(BigInt('0x' + clean.slice(0, 64))) * 2;
+      const length = Number(BigInt('0x' + clean.slice(offset, offset + 64)));
+      const payload = clean.slice(offset + 64, offset + 64 + length * 2);
+      const bytes = Uint8Array.from(payload.match(/../g) ?? [], pair => parseInt(pair, 16));
+      log('hello() output: ' + new TextDecoder().decode(bytes));
+      readButton.disabled = false;
+    }));
+    provider?.on?.('accountsChanged', () => { account = null; contract = null; deployButton.disabled = true; callButton.disabled = true; readButton.disabled = true; connectButton.disabled = false; log('Wallet account changed. Reconnect before continuing.'); });
+    provider?.on?.('chainChanged', () => { account = null; contract = null; deployButton.disabled = true; callButton.disabled = true; readButton.disabled = true; connectButton.disabled = false; log('Wallet network changed. Reconnect before continuing.'); });
+  </script>
+</body>
+</html>
