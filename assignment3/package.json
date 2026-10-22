@@ -1,0 +1,13 @@
+{
+  "name": "assignment3-ethereum-lab",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": { "lab": "node lab.js" },
+  "dependencies": {
+    "ethers": "6.13.5",
+    "ganache": "7.9.2",
+    "solc-051": "npm:solc@0.5.1",
+    "solc-0424": "npm:solc@0.4.24",
+    "solc-modern": "npm:solc@0.8.30"
+  }
+}

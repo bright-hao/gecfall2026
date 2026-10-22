@@ -1,0 +1,34 @@
+{
+  "environment": "Ganache 7.9.2 local EVM, Shanghai hardfork, chain ID 1337; no public-network transaction",
+  "compilers": {
+    "storage": "0.5.1+commit.c8a2cb62.Emscripten.clang",
+    "hello": "0.8.30+commit.73712a01.Emscripten.clang",
+    "dangerous": "0.4.24+commit.e67f0147.Emscripten.clang"
+  },
+  "storage": {
+    "bytes": 1024,
+    "words": 32,
+    "initialSlotWrites": 33,
+    "gasUsed": "758304",
+    "txHash": "0xffb797b7c09e5eb3316715ae904222b2780a9de9ed19e1a81d53c3e6922c578c",
+    "calldataBytes": 1092,
+    "storageVerified": true
+  },
+  "hello": {
+    "result": "Hello, world!",
+    "creationBytes": 249,
+    "runtimeBytes": 223,
+    "deploymentGas": "101667",
+    "transactionGas": "21499",
+    "transactionLogs": 0
+  },
+  "reentrancy": {
+    "victimInitialEther": "5",
+    "attackerSeedEther": "1",
+    "attackGas": "132765",
+    "victimFinalEther": "0",
+    "attackerBeforeSweepEther": "6",
+    "safeAttackReverted": true,
+    "safeAfterLegitimateWithdrawalEther": "3"
+  }
+}
