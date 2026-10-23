@@ -1,0 +1,18 @@
+{
+  "network": "Ethereum Sepolia",
+  "chainId": 11155111,
+  "deployer": "0xb9E93cCc03957ed59FD5b16374F27c85469447c8",
+  "faucetTransaction": "0x6886361e2329ff52dd3ed5dbb967110145e857224f4006753401f36f7f6f5a1d",
+  "faucetAmountSepETH": "1.6325",
+  "contract": "HelloWorld",
+  "compiler": "solc 0.8.30",
+  "optimizer": { "enabled": true, "runs": 200 },
+  "deploymentTransaction": "0xe6b4a4f7550691b86f9ebdd2c7e2a817054faad90afa568bf39f2fa3dd6c9f32",
+  "contractAddress": "0xbd633b6c5af6808cb204471f67d5fbc2a96baf70",
+  "helloTransaction": "0x0d1164780a5194687801a88b1babe21109acb3b68568c9df5d5ae10c1e692085",
+  "helloSelector": "0x19ff1d21",
+  "helloEthCallOutput": "Hello, world!",
+  "creationBytecodeMatchesTransaction": true,
+  "runtimeBytecodeMatchesChain": true,
+  "explorer": "https://sepolia.etherscan.io/"
+}
